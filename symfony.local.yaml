@@ -1,0 +1,5 @@
+# workers:
+#   # built-in command that builds and watches front-end assets
+#   npm_encore_watch:
+#     cmd: ["npm", "run", "watch"]
+#     # cmd: ["npx", "encore", "dev", "--watch"]

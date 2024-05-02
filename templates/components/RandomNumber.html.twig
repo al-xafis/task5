@@ -1,0 +1,60 @@
+<div {{ attributes }}>
+    <div class="controllers d-flex gap-5 justify-content-between align-items-center mt-5">
+            <div class="col">
+                <label for="region" class="form-label">Region</label>
+                <select class="form-select form-control" id="region" data-model="region">
+                    <option value="en_US">USA</option>
+                    <option value="ru_RU">Russia</option>
+                    <option value="it_IT">Italy</option>
+                </select>
+            </div>
+
+            <div class="col ">
+                <label for="error-range" class="form-label">Error range</label>
+                <input type="range" class="form-range" min="0" max="10" step="0.5" id="error-range" data-model="error">
+            </div>
+
+            <div class="col align-self-end">
+                <input type="text" class="form-control" id="error-input" value="5" data-model="error">
+            </div>
+
+            <div class="col">
+                <label for="seed" class="form-label">Seed</label>
+                <input type="text" class="form-control" id="seed" placeholder="Enter seed" data-model="seed">
+            </div>
+
+            <div class="col align-self-end">
+                <button type="button" class="btn btn-primary">Export to CSV</button>
+            </div>
+    </div>
+    <div class="table_data">
+        <table class="table mt-4">
+        <thead>
+            <tr>
+                <th scope="col">Index</th>
+                <th scope="col">Random Id</th>
+                <th scope="col">Name</th>
+                <th scope="col">Address</th>
+                <th scope="col">Phone</th>
+            </tr>
+        </thead>
+        <button data-action="live#action" data-live-action-param="add" >preess me</button>
+        <button data-action="live#$render">pree</button>
+
+        <tbody class="table-group-divider">
+        {{generatedData|length}}
+
+            {% for user in generatedData %}
+                <tr data-num={{user.index}} >
+                    <th>{{ user.index }}</th>
+                    <th style="max-width: 220px;">{{ user.id }}</th>
+                    <td>{{ user.name }}</td>
+                    <td style="max-width: 350px;">{{ user.address }}</td>
+                    <td>{{ user.phone }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+
+    </div>
+</div>
