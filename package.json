@@ -25,6 +25,7 @@
         "build": "encore production --progress"
     },
     "dependencies": {
-        "@faker-js/faker": "^8.4.1"
+        "@faker-js/faker": "^8.4.1",
+        "file-saver": "^2.0.5"
     }
 }

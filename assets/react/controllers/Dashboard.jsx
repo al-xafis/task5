@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 import { Faker, en, ru, it } from "@faker-js/faker";
+import { exportTable } from "../utils/csv";
+
+let alphabet = "abcdefghijklmnopqrstuvwxyz";
+
+let errFaker = new Faker({ locale: [en] });
+errFaker.seed(0);
 
 const times = (n, fn) => {
   if (n < 0) throw new Error("The first argument cannot be negative.");
   return (arg) => {
     for (let i = Math.floor(n); i--; ) arg = fn(arg);
-    return Math.random() < n % 1 ? fn(arg) : arg;
+    return errFaker.number.float() < n % 1 ? fn(arg) : arg;
   };
 };
 
@@ -13,12 +19,10 @@ function swapNearChar(str) {
   if (str.length === 0) {
     return str;
   }
-  //   let faker = new Faker({ locale: [en] });
-  //   faker.seed(3);
-  //   const randomIndex = Math.floor(
-  //     faker.number.int({ min: 0, max: str.length - 1 })
-  //   );
-  const randomIndex = Math.floor(Math.random() * str.length);
+
+  const randomIndex = Math.floor(
+    errFaker.number.int({ min: 0, max: str.length - 1 })
+  );
 
   let offset;
   if (randomIndex == 0) {
@@ -42,7 +46,9 @@ function removeRandomChar(str) {
     return str;
   }
 
-  const randomIndex = Math.floor(Math.random() * str.length);
+  const randomIndex = Math.floor(
+    errFaker.number.int({ min: 0, max: str.length - 1 })
+  );
 
   const deletedStr = str.slice(0, randomIndex) + str.slice(randomIndex + 1);
   return deletedStr;
@@ -52,12 +58,15 @@ function addRandomChar(str) {
   if (str.length === 0) {
     return str;
   }
-  const alphabet = "abcdefghijklmnopqrstuvwxyz";
-  const randomChar = alphabet.charAt(
-    Math.floor(Math.random() * alphabet.length)
-  );
 
-  const randomIndex = Math.floor(Math.random() * (str.length + 1));
+  const randomint = Math.floor(
+    errFaker.number.int({ min: 0, max: alphabet.length - 1 })
+  );
+  const randomChar = alphabet.charAt(randomint);
+
+  const randomIndex = Math.floor(
+    errFaker.number.int({ min: 0, max: str.length - 1 })
+  );
 
   const modifiedStr =
     str.slice(0, randomIndex) + randomChar + str.slice(randomIndex);
@@ -66,43 +75,71 @@ function addRandomChar(str) {
 }
 
 function randomizeFunc(...func) {
-  let randomIndex = Math.floor(Math.random() * func.length);
-  //   console.log(func[randomIndex]);
+  const randomIndex = Math.floor(
+    errFaker.number.int({ min: 0, max: func.length - 1 })
+  );
   return func[randomIndex];
 }
 
 let errorFunctions = [swapNearChar, removeRandomChar, addRandomChar];
 
-// const scheherazade = times(2.5, (x) => randomizeFunc(...errorFunctions)(x))(
-//   "Astalavista"
-// );
-// console.log(scheherazade);
-// console.log(scheherazade("Astalavista"));
-// times(1, () => console.log(scheherazade("mavrid")))();
+function generateData(faker, length, error = 0, oldLength = 0) {
+  let data = [];
+  if (error > 0) {
+    for (oldLength; oldLength < length; oldLength++) {
+      let address =
+        faker.location.buildingNumber() +
+        " " +
+        faker.location.streetAddress() +
+        " " +
+        faker.location.city() +
+        " " +
+        faker.location.state();
+      let id = faker.string.uuid();
+      let name = faker.person.fullName();
+      let phone = faker.phone.number();
+      name = times(error, (x) => randomizeFunc(...errorFunctions)(x))(name);
+      address = times(error, (x) => randomizeFunc(...errorFunctions)(x))(
+        address
+      );
+      phone = times(error, (x) => randomizeFunc(...errorFunctions)(x))(phone);
+      data.push({
+        index: oldLength + 1,
+        id: id,
+        name: name,
+        address: address,
+        phone: phone,
+      });
+    }
+  } else {
+    for (oldLength; oldLength < length; oldLength++) {
+      let address =
+        faker.location.buildingNumber() +
+        " " +
+        faker.location.streetAddress() +
+        " " +
+        faker.location.city() +
+        " " +
+        faker.location.state();
+      data.push({
+        index: oldLength + 1,
+        id: faker.string.uuid(),
+        name: faker.person.fullName(),
+        address: address,
+        phone: faker.phone.number(),
+      });
+    }
+  }
+
+  return data;
+}
 
 let faker = new Faker({ locale: [en] });
-let length = 3;
-let data = [];
-let seed = 0;
-faker.seed(seed);
+faker.seed(0);
+let length = 20;
+let page = 0;
 
-for (let i = 0; i < length; i++) {
-  let address =
-    faker.location.buildingNumber() +
-    " " +
-    faker.location.streetAddress() +
-    " " +
-    faker.location.city() +
-    " " +
-    faker.location.state();
-  data.push({
-    index: i + 1,
-    id: faker.string.uuid(),
-    name: faker.person.fullName(),
-    address: address,
-    phone: faker.phone.number(),
-  });
-}
+let data = generateData(faker, length);
 
 export default function (props) {
   const [error, setError] = useState(0);
@@ -123,46 +160,28 @@ export default function (props) {
   });
 
   function generateMore() {
-    let oldLength = length;
-    length += 2;
-    const newData = [];
-    faker.seed(seed);
-    for (oldLength; oldLength < length; oldLength++) {
-      newData.push({
-        index: oldLength + 1,
-        id: faker.string.uuid(),
-        name: faker.person.fullName(),
-        address: faker.location.buildingNumber(),
-        phone: faker.phone.number(),
-      });
+    const bottom =
+      Math.ceil(window.innerHeight + window.scrollY) >=
+      document.documentElement.scrollHeight;
+    if (bottom) {
+      let oldLength = length;
+      length += 10;
+      page += 1;
+      faker.seed(page + seed);
+      let newData = generateData(faker, length, error, oldLength);
+
+      setGeneratedData([...generatedData, ...newData]);
     }
-    setGeneratedData([...generatedData, ...newData]);
   }
 
   function renewSeed(seedValue) {
+    setError(0);
     let newSeed = parseInt(seedValue) || 0;
     setSeed(newSeed);
     faker.seed(newSeed);
-    console.log(seed);
-    const newData = [];
-    length = 0;
-    for (let i = 0; i < 3; i++) {
-      let address =
-        faker.location.buildingNumber() +
-        " " +
-        faker.location.streetAddress() +
-        " " +
-        faker.location.city() +
-        " " +
-        faker.location.state();
-      newData.push({
-        index: i + 1,
-        id: faker.string.uuid(),
-        name: faker.person.fullName(),
-        address: address,
-        phone: faker.phone.number(),
-      });
-    }
+    length = 20;
+    const newData = generateData(faker, length);
+
     setGeneratedData(newData);
   }
 
@@ -172,98 +191,52 @@ export default function (props) {
   }
 
   function renewRegion(regionValue) {
+    setError(0);
+    length = 20;
+    page = 0;
     let newRegionValue;
     if (regionValue == "en") {
+      alphabet = "abcdefghijklmnopqrstuvwxyz";
       newRegionValue = en;
     } else if (regionValue == "ru") {
+      alphabet = "абвгдежзийклмнопрстуфхцчшщъыьэюя";
       newRegionValue = ru;
     } else if ((regionValue = "it")) {
+      alphabet = "abcdefghilmnopqrstuvz";
       newRegionValue = it;
     }
     setRegion(regionValue);
     faker = new Faker({ locale: [newRegionValue] });
     faker.seed(seed);
-    const newData = [];
-    length = 0;
-    for (let i = 0; i < 3; i++) {
-      let address =
-        faker.location.buildingNumber() +
-        " " +
-        faker.location.streetAddress() +
-        " " +
-        faker.location.city() +
-        " " +
-        faker.location.state();
-      newData.push({
-        index: i + 1,
-        id: faker.string.uuid(),
-        name: faker.person.fullName(),
-        address: address,
-        phone: faker.phone.number(),
-      });
-    }
+    const newData = generateData(faker, length);
+
     setGeneratedData(newData);
   }
 
   function renewError(errorValue) {
-    let newError = parseFloat(errorValue) || 0;
-    setError(newError);
+    errFaker = new Faker({ locale: [en] });
+    errFaker.seed(0);
+    let newError;
+    if (errorValue.match(/^([0-9]{1,})?(\.)?([0-9]{1,})?$/)) {
+      newError = errorValue;
+      setError(errorValue);
+    } else {
+      return;
+    }
+
     faker.seed(seed);
+    page = 0;
+    length = 20;
 
-    // const newData = [];
-    // length = 0;
+    const newData = generateData(faker, length, newError);
 
-    // for (let i = 0; i < 3; i++) {
-    //   let address =
-    //     faker.location.buildingNumber() +
-    //     " " +
-    //     faker.location.steetAddress() +
-    //     " " +
-    //     faker.location.city() +
-    //     " " +
-    //     faker.location.state();
-    //   newData.push({
-    //     index: i + 1,
-    //     id: faker.string.uuid(),
-    //     name: faker.person.fullName(),
-    //     address: address,
-    //     phone: faker.phone.number(),
-    //   });
-    // }
-    // setGeneratedData(newData);
-
-    // console.log(faker.person.fullName());
-
-    // const newData = [];
-    // length = 0;
-    // for (let i = 0; i < 3; i++) {
-    //   let address =
-    //     faker.location.buildingNumber() +
-    //     " " +
-    //     faker.location.streetAddress() +
-    //     " " +
-    //     faker.location.city() +
-    //     " " +
-    //     faker.location.state();
-    //   let name = times(newError, (x) => randomizeFunc(...errorFunctions)(x))(
-    //     faker.person.fullName()
-    //   );
-    //   address = times(newError, (x) => randomizeFunc(...errorFunctions)(x))(
-    //     address
-    //   );
-    //   let phone = times(newError, (x) => randomizeFunc(...errorFunctions)(x))(
-    //     faker.phone.number()
-    //   );
-    //   newData.push({
-    //     index: i + 1,
-    //     id: faker.string.uuid(),
-    //     name: name,
-    //     address: address,
-    //     phone: phone,
-    //   });
-    // }
-    // setGeneratedData(newData);
+    setGeneratedData(newData);
   }
+
+  React.useEffect(() => {
+    window.addEventListener("scroll", generateMore);
+    return () => window.removeEventListener("scroll", generateMore);
+  }, [generatedData]);
 
   return (
     <div>
@@ -284,7 +257,7 @@ export default function (props) {
           </select>
         </div>
 
-        {/* <div className="col ">
+        <div className="col ">
           <label htmlFor="error-range" className="form-label">
             Error range
           </label>
@@ -298,7 +271,7 @@ export default function (props) {
             value={error}
             onChange={(e) => renewError(e.target.value)}
           />
-        </div> */}
+        </div>
 
         <div className="col align-self-end">
           <input
@@ -335,12 +308,15 @@ export default function (props) {
         </div>
 
         <div className="col align-self-end">
-          <button type="button" className="btn btn-primary">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={exportTable}
+          >
             Export to CSV
           </button>
         </div>
       </div>
-      <button onClick={generateMore}>More</button>
       <div className="table_data">
         <table className="table mt-4">
           <thead>
@@ -353,17 +329,8 @@ export default function (props) {
             </tr>
           </thead>
 
-          <tbody className="table-group-divider">
+          <tbody className="table-group-divider" id="table">
             {listData}
-            {/* {% for user in generatedData %}
-                <tr data-num={{user.index}} >
-                    <th>{{ user.index }}</th>
-                    <th style="max-width: 220px;">{{ user.id }}</th>
-                    <td>{{ user.name }}</td>
-                    <td style="max-width: 350px;">{{ user.address }}</td>
-                    <td>{{ user.phone }}</td>
-                </tr>
-            {% endfor %} */}
           </tbody>
         </table>
       </div>
